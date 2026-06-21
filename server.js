@@ -6,6 +6,17 @@ const app = express();
 const connectDB = require('./config/db');
 connectDB();
 
+const cors = require("cors");
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "http://localhost:3000",
+];
+app.use(cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    // credentials: true
+}));
+
 app.use(express.json());
 
 const userRoutes = require("./routes/user.routes");
