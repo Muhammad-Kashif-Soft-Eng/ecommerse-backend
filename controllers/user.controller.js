@@ -5,91 +5,145 @@ const crypto = require("crypto");
 // ================ Register User ================
 exports.registerUser = async (req, res, next) => {
     try {
-        
-        const { username, email, password } = req.body;
-        
-        if (!username || !email || !password) {
+
+        const { username, password } = req.body;
+        const userEmail = req.body.email;
+
+        if (!username || !userEmail || !password) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required."
             });
         };
 
+        const email = userEmail?.trim().toLowerCase();
+
         const existingUser = await User.findOne({ email });
         // while .find() returns array.
-        
+
         if (existingUser) {
             return res.status(409).json({
                 success: false,
                 message: "User with this email already exist."
             });
         };
-        
-        const user = await User.create(req.body);
-        
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters."
+            });
+        }
+
+        const user = await User.create({
+            username,
+            email,
+            password
+        });
+
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
         // Send registration email
-        await sendRegistrationEmail(email, username);
-        
+        try {
+            await sendRegistrationEmail(email, username);
+        } catch (err) {
+            console.error(err);
+        }
+
         return res.status(201).json({
             success: true,
             message: "User registered successfully. Confirmation email sent.",
-            user
+            user: userResponse
         });
-        
+
     } catch (err) {
-        
+
+        if (err.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
+
         next(err);
-        
+
     };
 };
 
 // ================ Login User ================
 exports.loginUser = async (req, res, next) => {
     try {
-        
-        const { email, password } = req.body;
-        
-        if (!email || !password) {
+
+        const userEmail = req.body.email;
+        const { password } = req.body;
+
+        if (!userEmail || !password) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required."
             });
         };
 
-        const existingUser = await User.findOne({ email });
+        const email = userEmail?.trim().toLowerCase();
+
+        const existingUser = await User.findOne({ email }).select("+password");
         // while .find() returns array.
-        
+
         if (!existingUser) {
-            return res.status(409).json({
+            return res.status(401).json({
                 success: false,
-                message: "User with this email does not exist."
+                message: "Invalid Credentials."
             });
         };
-        
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters."
+            });
+        }
+
+        const isMatch = await existingUser.comparePassword(password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Credentials."
+            });
+        };
+
+        const userResponse = existingUser.toObject();
+        delete userResponse.password;
+
+
         return res.status(200).json({
             success: true,
             message: "User logged in successfully.",
-            existingUser
+            user: userResponse
         });
-        
+
     } catch (err) {
-        
+
         next(err);
-        
+
     };
 };
 
 // ================ Forgot Password ================
 exports.forgotPassword = async (req, res, next) => {
     try {
-        const { email } = req.body;
 
-        if (!email) {
+        const userEmail = req.body.email;
+
+        if (!userEmail) {
             return res.status(400).json({
                 success: false,
                 message: "Email is required."
             });
         }
+
+        const email = userEmail?.trim().toLowerCase();
 
         const user = await User.findOne({ email });
 
