@@ -5,6 +5,8 @@ const app = express();
 
 const connectDB = require('./config/db');
 
+const cookieParser = require("cookie-parser");
+
 const cors = require("cors");
 const allowedOrigins = [
     process.env.FRONTEND_URL,
@@ -16,6 +18,7 @@ app.use(cors({
     // credentials: true
 }));
 
+app.use(cookieParser());
 app.use(express.json());
 
 // every request waits for a real DB connection before moving on

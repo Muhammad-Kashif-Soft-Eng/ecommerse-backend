@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+const authMiddleware = require("../middlewares/auth.middleware");
 const upload = require("../middlewares/upload.middleware");
 
 const {
@@ -11,14 +12,15 @@ const {
   deleteProduct,
 } = require("../controllers/product.controller");
 
-router.post("/", upload.single("image"), createProduct);
-
+// Public routes
 router.get("/", getProducts);
-
 router.get("/:id", getProductById);
 
-router.put("/:id", upload.single("image"), updateProduct);
+// Protected Routes
+router.use(authMiddleware);
 
+router.post("/", upload.single("image"), createProduct);
+router.put("/:id", upload.single("image"), updateProduct);
 router.delete("/:id", deleteProduct);
 
 module.exports = router;

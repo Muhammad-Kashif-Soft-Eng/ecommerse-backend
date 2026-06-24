@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const { sendRegistrationEmail, sendForgotPasswordEmail } = require("../config/nodemailer");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 
 // ================ Register User ================
 exports.registerUser = async (req, res, next) => {
@@ -116,6 +117,18 @@ exports.loginUser = async (req, res, next) => {
         const userResponse = existingUser.toObject();
         delete userResponse.password;
 
+        const token = jwt.sign(     // encoded token
+            { id: existingUser._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.cookie("token", token, {
+            maxAge: 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict"
+        });
 
         return res.status(200).json({
             success: true,
@@ -242,6 +255,25 @@ exports.resetPassword = async (req, res, next) => {
             message: "Password reset successfully. You can now login with your new password."
         });
 
+    } catch (err) {
+        next(err);
+    }
+};
+
+
+// ================ Logout ================
+exports.logoutUser = async (req, res, next) => {
+    try {
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict"
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out successfully."
+        });
     } catch (err) {
         next(err);
     }
