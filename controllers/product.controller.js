@@ -84,6 +84,7 @@ exports.getProducts = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      message: "Products fetched successfully.",
       count: products.length,
       products,
     });
