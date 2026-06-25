@@ -117,31 +117,18 @@ exports.loginUser = async (req, res, next) => {
         const userResponse = existingUser.toObject();
         delete userResponse.password;
 
-        const token = jwt.sign(     // encoded token
+        const token = jwt.sign(
             { id: existingUser._id },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        const isProduction = process.env.NODE_ENV === "production";
-        const isLocalhost = req.hostname === "localhost" || req.hostname === "127.0.0.1";
-
-        const cookieOptions = {
-            secure: isProduction || isLocalhost,
-            sameSite: "none",
-            path: "/",
-            maxAge: 24 * 60 * 60 * 1000,
-        };
-
         res.cookie("token", token, {
-            ...cookieOptions,
-            httpOnly: true,
-        });
-
-        res.cookie("isLoggedIn", "true", {
-            ...cookieOptions,
-            httpOnly: false,
-        });
+            maxAge: 900000, // Expires in 15 minutes (in milliseconds)
+            httpOnly: true, // Protects against XSS attacks
+            secure: true,   // Sends cookie only over HTTPS
+            sameSite: 'none' // Protects against CSRF attacks
+        })
 
         return res.status(200).json({
             success: true,
@@ -277,21 +264,12 @@ exports.resetPassword = async (req, res, next) => {
 // ================ Logout ================
 exports.logoutUser = async (req, res, next) => {
     try {
-        const isProduction = process.env.NODE_ENV === "production";
 
-        const cookieOptions = {
-            secure: isProduction,
-            sameSite: "none",
-            path: "/",
-        };
-
-        res.clearCookie("token", {
-            ...cookieOptions,
+        res.cookie("token", token, {
             httpOnly: true,
-        });
-        res.clearCookie("isLoggedIn", {
-            ...cookieOptions,
-            httpOnly: false,
+            secure: true,
+            sameSite: "none",
+            maxAge: "1d"
         });
 
         return res.status(200).json({
