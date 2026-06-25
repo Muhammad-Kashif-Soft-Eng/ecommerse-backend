@@ -123,12 +123,24 @@ exports.loginUser = async (req, res, next) => {
             { expiresIn: "1d" }
         );
 
-        res.cookie("token", token, {
-            maxAge: 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            secure: true,
+        const isProduction = process.env.NODE_ENV === "production";
+        const isLocalhost = req.hostname === "localhost" || req.hostname === "127.0.0.1";
+
+        const cookieOptions = {
+            secure: isProduction || isLocalhost,
             sameSite: "none",
-            // domain: ".vercel.app"
+            path: "/",
+            maxAge: 24 * 60 * 60 * 1000,
+        };
+
+        res.cookie("token", token, {
+            ...cookieOptions,
+            httpOnly: true,
+        });
+
+        res.cookie("isLoggedIn", "true", {
+            ...cookieOptions,
+            httpOnly: false,
         });
 
         return res.status(200).json({
@@ -265,10 +277,21 @@ exports.resetPassword = async (req, res, next) => {
 // ================ Logout ================
 exports.logoutUser = async (req, res, next) => {
     try {
+        const isProduction = process.env.NODE_ENV === "production";
+
+        const cookieOptions = {
+            secure: isProduction,
+            sameSite: "none",
+            path: "/",
+        };
+
         res.clearCookie("token", {
+            ...cookieOptions,
             httpOnly: true,
-            secure: true,
-            sameSite: "none"
+        });
+        res.clearCookie("isLoggedIn", {
+            ...cookieOptions,
+            httpOnly: false,
         });
 
         return res.status(200).json({
