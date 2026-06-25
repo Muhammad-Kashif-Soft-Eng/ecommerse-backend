@@ -123,14 +123,13 @@ exports.loginUser = async (req, res, next) => {
             { expiresIn: "1d" }
         );
 
-        const cookieOptions = {
-            maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
-            httpOnly: true, // Protects against XSS attacks
-            secure: process.env.NODE_ENV === "production", // only HTTPS in production
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-        };
-
-        res.cookie("token", token, cookieOptions);
+        res.cookie("token", token, {
+            maxAge: 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            path: "/",
+        });
 
         return res.status(200).json({
             success: true,
@@ -266,14 +265,15 @@ exports.resetPassword = async (req, res, next) => {
 // ================ Logout ================
 exports.logoutUser = async (req, res, next) => {
     try {
-        const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            maxAge: 0
-        };
 
-        res.cookie("token", "", cookieOptions);
+        res.cookie("token", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            path: "/",
+            maxAge: 0
+        });
+
 
         return res.status(200).json({
             success: true,
