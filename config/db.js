@@ -4,10 +4,16 @@ let isConnected = false;
 
 const connectDB = async () => {
 
-    if(isConnected) return;
+    if (isConnected) return;
+
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+    if (!mongoUri) {
+        throw new Error("MongoDB URI is not defined.");
+    }
 
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(mongoUri);
         isConnected = true;
         console.log('MongoDB connected successfully');
     } catch (err) {

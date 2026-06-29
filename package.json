@@ -26,5 +26,13 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Muhammad-Kashif-Soft-Eng/ecommerse-backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Muhammad-Kashif-Soft-Eng/ecommerse-backend/issues"
+  },
+  "homepage": "https://github.com/Muhammad-Kashif-Soft-Eng/ecommerse-backend#readme"
 }

@@ -10,12 +10,22 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const allowedOrigins = [
     process.env.FRONTEND_URL,
+    "https://ecommerse-frontend-xi.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-];
+].filter(Boolean);
+
+app.set("trust proxy", 1);
 app.use(cors({
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true
 }));
 

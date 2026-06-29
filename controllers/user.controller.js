@@ -3,6 +3,20 @@ const { sendRegistrationEmail, sendForgotPasswordEmail } = require("../config/no
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
+const getCookieOptions = (req) => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https",
+    sameSite: process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https" ? "None" : "Lax",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+});
+
+const createToken = (user) => jwt.sign(
+    { id: user._id, email: user.email, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+);
+
 // ================ Register User ================
 exports.registerUser = async (req, res, next) => {
     try {
@@ -44,6 +58,9 @@ exports.registerUser = async (req, res, next) => {
 
         const userResponse = user.toObject();
         delete userResponse.password;
+
+        const token = createToken(user);
+        res.cookie("token", token, getCookieOptions(req));
 
         // Send registration email
         try {
@@ -117,19 +134,8 @@ exports.loginUser = async (req, res, next) => {
         const userResponse = existingUser.toObject();
         delete userResponse.password;
 
-        const token = jwt.sign(
-            { id: existingUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: "1d" }
-        );
-
-        res.cookie("token", token, {
-            maxAge: 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            path: "/",
-        });
+        const token = createToken(existingUser);
+        res.cookie("token", token, getCookieOptions(req));
 
         return res.status(200).json({
             success: true,
@@ -142,6 +148,27 @@ exports.loginUser = async (req, res, next) => {
         next(err);
 
     };
+};
+
+// ================ Get Current User ================
+exports.getCurrentUser = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user
+        });
+    } catch (err) {
+        next(err);
+    }
 };
 
 // ================ Forgot Password ================
@@ -268,8 +295,8 @@ exports.logoutUser = async (req, res, next) => {
 
         res.cookie("token", "", {
             httpOnly: true,
-            secure: true,
-            sameSite: "none",
+            secure: process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https",
+            sameSite: process.env.NODE_ENV === "production" || req.secure || req.headers["x-forwarded-proto"] === "https" ? "None" : "Lax",
             path: "/",
             maxAge: 0
         });

@@ -2,7 +2,10 @@ const jwt = require("jsonwebtoken");
 
 const auth = (req, res, next) => {
     try {
-        const token = req.cookies.token;
+        const authHeader = req.headers.authorization;
+        const tokenFromCookie = req.cookies?.token;
+        const tokenFromHeader = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+        const token = tokenFromCookie || tokenFromHeader;
 
         if (!token) {
             return res.status(401).json({
