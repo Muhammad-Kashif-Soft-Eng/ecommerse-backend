@@ -12,7 +12,7 @@ const getCookieOptions = (req) => ({
 });
 
 const createToken = (user) => jwt.sign(
-    { id: user._id, email: user.email, username: user.username },
+    { id: user._id, email: user.email, username: user.username, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
 );
@@ -53,7 +53,10 @@ exports.registerUser = async (req, res, next) => {
         const user = await User.create({
             username,
             email,
-            password
+            password,
+            role: process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL.trim().toLowerCase()
+                ? "admin"
+                : "customer",
         });
 
         const userResponse = user.toObject();
@@ -130,6 +133,13 @@ exports.loginUser = async (req, res, next) => {
                 message: "Invalid Credentials."
             });
         };
+
+        if (existingUser.isBlocked) {
+            return res.status(403).json({
+                success: false,
+                message: "Your account has been blocked. Contact support."
+            });
+        }
 
         const userResponse = existingUser.toObject();
         delete userResponse.password;
@@ -305,6 +315,168 @@ exports.logoutUser = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: "Logged out successfully."
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ================ Update Profile ================
+exports.updateProfile = async (req, res, next) => {
+    try {
+        const { username, phone, addresses } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        if (username?.trim()) user.username = username.trim();
+        if (phone !== undefined) user.phone = phone.trim();
+        if (Array.isArray(addresses)) user.addresses = addresses;
+
+        await user.save();
+
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully.",
+            user: userResponse
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ================ Change Password ================
+exports.changePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All password fields are required."
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "New passwords do not match."
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters."
+            });
+        }
+
+        const user = await User.findById(req.user.id).select("+password");
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Current password is incorrect."
+            });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully."
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ================ Get All Customers (Admin) ================
+exports.getAllCustomers = async (req, res, next) => {
+    try {
+        const customers = await User.find({ role: "customer" })
+            .select("-password")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: customers.length,
+            customers
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ================ Get Customer By Id (Admin) ================
+exports.getCustomerById = async (req, res, next) => {
+    try {
+        const customer = await User.findOne({
+            _id: req.params.id,
+            role: "customer"
+        }).select("-password");
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            customer
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ================ Toggle Block Customer (Admin) ================
+exports.toggleBlockCustomer = async (req, res, next) => {
+    try {
+        const customer = await User.findOne({
+            _id: req.params.id,
+            role: "customer"
+        });
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found."
+            });
+        }
+
+        customer.isBlocked = !customer.isBlocked;
+        await customer.save();
+
+        return res.status(200).json({
+            success: true,
+            message: customer.isBlocked
+                ? "Customer blocked successfully."
+                : "Customer unblocked successfully.",
+            customer: {
+                _id: customer._id,
+                username: customer.username,
+                email: customer.email,
+                isBlocked: customer.isBlocked
+            }
         });
     } catch (err) {
         next(err);

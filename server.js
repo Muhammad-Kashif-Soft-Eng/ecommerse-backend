@@ -47,6 +47,9 @@ app.use(async (req, res, next) => {
 
 const userRoutes = require("./routes/user.routes");
 const productRoutes = require("./routes/product.routes");
+const cartRoutes = require("./routes/cart.routes");
+const orderRoutes = require("./routes/order.routes");
+const customerRoutes = require("./routes/customer.routes");
 const errorHandler = require("./middlewares/error.middleware");
 
 app.get("/", (req, res) => {
@@ -57,6 +60,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/customers", customerRoutes);
 
 app.use(errorHandler);
 

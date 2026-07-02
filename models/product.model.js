@@ -39,6 +39,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      enum: ["Mobile", "Laptop", "Headphones"],
       index: true,
     },
 

@@ -45,6 +45,13 @@ exports.createProduct = async (req, res, next) => {
       return next(error);
     }
 
+    const validCategories = ["Mobile", "Laptop", "Headphones"];
+    if (!validCategories.includes(trimmedCategory)) {
+      const error = new Error("Category must be Mobile, Laptop, or Headphones.");
+      error.statusCode = 400;
+      return next(error);
+    }
+
     const existingProduct = await Product.findOne({
       productname: trimmedProductName,
     });
@@ -142,8 +149,15 @@ exports.updateProduct = async (req, res, next) => {
       return next(error);
     }
 
-    if (isNaN(countInStock) || Number(countInStock) < 0) {
+        if (isNaN(countInStock) || Number(countInStock) < 0) {
       const error = new Error("Invalid stock quantity");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const validCategories = ["Mobile", "Laptop", "Headphones"];
+    if (!validCategories.includes(trimmedCategory)) {
+      const error = new Error("Category must be Mobile, Laptop, or Headphones.");
       error.statusCode = 400;
       return next(error);
     }
