@@ -75,6 +75,7 @@ exports.registerUser = async (req, res, next) => {
         return res.status(201).json({
             success: true,
             message: "User registered successfully. Confirmation email sent.",
+            token,
             user: userResponse
         });
 
@@ -150,6 +151,7 @@ exports.loginUser = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: "User logged in successfully.",
+            token,
             user: userResponse
         });
 
